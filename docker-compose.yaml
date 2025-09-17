@@ -1,0 +1,13 @@
+services:
+  app:
+    build: .
+    env_file: .env
+    restart: unless-stopped
+    container_name: "edu_app"
+    volumes:
+      - .:/edu_app
+    ports:
+      - "8011:8000"
+
+volumes:
+  pg_data:
