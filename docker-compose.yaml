@@ -1,13 +1,87 @@
 services:
-  app:
-    build: .
-    env_file: .env
+  postgres:
+    image: postgres:16-alpine
+    container_name: defects_center_postgres
     restart: unless-stopped
-    container_name: "edu_app"
+    environment:
+      POSTGRES_USER: defects_user
+      POSTGRES_PASSWORD: defects_password
+      POSTGRES_DB: defects_db
     volumes:
-      - .:/edu_app
+      - pg_data:/var/lib/postgresql/data
     ports:
-      - "8011:8000"
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U defects_user -d defects_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  auth_service:
+    env_file:
+      - .env
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: auth_service
+    command: uvicorn auth_service.main:app --host 0.0.0.0 --port 8000
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg2://defects_user:defects_password@postgres:5432/defects_db
+      JWT_SECRET_KEY: super_secret_jwt_key_change_me
+      JWT_ALGORITHM: HS256
+      JWT_EXPIRE_MINUTES: 1440
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "18001:8000"
+
+  defects_service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: defects_service
+    command: uvicorn defects_service.main:app --host 0.0.0.0 --port 8000
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg2://defects_user:defects_password@postgres:5432/defects_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "18002:8000"
+
+  projects_service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: projects_service
+    command: uvicorn projects_service.main:app --host 0.0.0.0 --port 8000
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg2://defects_user:defects_password@postgres:5432/defects_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "18003:8000"
+
+  settings_service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: settings_service
+    command: uvicorn settings_service.main:app --host 0.0.0.0 --port 8000
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+psycopg2://defects_user:defects_password@postgres:5432/defects_db
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "18004:8000"
 
 volumes:
   pg_data:
