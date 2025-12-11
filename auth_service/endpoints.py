@@ -74,12 +74,15 @@ async def register(user: RegisterUserRequestSchema):
                 detail="User is already registered.",
             )
 
+        name = user.name if user.name else user.email
+        role = user.role if user.role else "engineer"
+
         password_hash = pwd_context.hash(user.password)
 
         new_user = User(
             email=user.email,
-            name=user.name,
-            role=user.role,
+            name=name,
+            role=role,
             password_hash=password_hash,
         )
 
@@ -89,6 +92,7 @@ async def register(user: RegisterUserRequestSchema):
         return new_user.id
     finally:
         db.close()
+
 
 
 @app.post("/auth/login", response_model=Token)
