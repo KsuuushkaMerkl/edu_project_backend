@@ -5,7 +5,8 @@ from pydantic import BaseModel, EmailStr
 class RegisterUserRequestSchema(BaseModel):
     email: EmailStr
     password: str
-
+    role: str = "engineer"
+    name: str = None
 
 class UserOut(BaseModel):
     id: int
