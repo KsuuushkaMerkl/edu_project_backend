@@ -67,22 +67,19 @@ def require_admin(current_user: User = Depends(manager)) -> User:
 async def register(user: RegisterUserRequestSchema):
     db = create_session()
     try:
-        existing_user = db.query(User).filter(User.email == user.email).first()
+        existing_user = db.query(User).filter(User.email == user.username).first()
         if existing_user:
             raise HTTPException(
                 status_code=400,
                 detail="User is already registered.",
             )
 
-        name = user.name if user.name else user.email
-        role = user.role if user.role else "engineer"
-
         password_hash = pwd_context.hash(user.password)
 
         new_user = User(
-            email=user.email,
-            name=name,
-            role=role,
+            email=user.username,
+            name=user.name,
+            role=user.role,
             password_hash=password_hash,
         )
 
@@ -94,12 +91,9 @@ async def register(user: RegisterUserRequestSchema):
         db.close()
 
 
-
 @app.post("/auth/login", response_model=Token)
-def login(
-    data: OAuth2PasswordRequestForm = Depends(),
-):
-    username = data.username
+def login(data: OAuth2PasswordRequestForm = Depends()):
+    username = data.username  # здесь это будет email
     password = data.password
 
     user = query_user(username)
